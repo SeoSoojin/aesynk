@@ -3,6 +3,7 @@ package graph
 import (
 	"encoding/csv"
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
@@ -11,15 +12,17 @@ import (
 )
 
 type Graph struct {
-	NodeMap   map[string]*node.Node
-	Symmetric bool
+	NodeMap    map[string]*node.Node
+	Dimensions int
+	Symmetric  bool
 }
 
-func NewGraph(symmetric bool) graph {
+func NewGraph(symmetric bool, dimensions int) graph {
 
 	return &Graph{
-		NodeMap:   make(map[string]*node.Node),
-		Symmetric: symmetric,
+		NodeMap:    make(map[string]*node.Node),
+		Symmetric:  symmetric,
+		Dimensions: dimensions,
 	}
 
 }
@@ -40,16 +43,15 @@ func (g *Graph) FromCSV(path string) (graph, error) {
 		return g, err
 	}
 
-	dimensions := len(lines[0]) - 2
 	linesWithoutHeader := lines[1:]
 
 	nodesMap := make(map[string]*node.Node)
 
 	for _, line := range linesWithoutHeader {
 
-		coordinatesFields := line[1 : 1+dimensions]
+		coordinatesFields := line[1 : 1+g.Dimensions]
 
-		coordinates := make([]float64, dimensions)
+		coordinates := make([]float64, g.Dimensions)
 
 		for index, value := range coordinatesFields {
 
@@ -138,4 +140,71 @@ func walk(curr *node.Node, visited map[string]struct{}, depth int) {
 
 func (g *Graph) Nodes() map[string]*node.Node {
 	return g.NodeMap
+}
+
+func (g *Graph) GenerateCompleteGraph(size int, randomize bool) graph {
+
+	nodesMap := make(map[string]*node.Node)
+
+	for i := 0; i < size; i++ {
+
+		coordinates := make([]float64, g.Dimensions)
+
+		for j := range coordinates {
+
+			if randomize {
+				coordinates[j] = rand.Float64()
+				continue
+			}
+
+			coordinates[j] = float64(i) + (float64(j) / 10)
+
+		}
+
+		node := node.NewNode(strconv.Itoa(i), coordinates)
+
+		nodesMap[node.Name] = node
+
+	}
+
+	for _, node := range nodesMap {
+
+		for _, otherNode := range nodesMap {
+
+			if node.Name == otherNode.Name {
+				continue
+			}
+
+			node.AddAdjacent(otherNode)
+
+		}
+
+	}
+
+	g.NodeMap = nodesMap
+
+	return g
+
+}
+
+func (g *Graph) ValidateCompleteGraph() bool {
+
+	for _, node := range g.NodeMap {
+
+		if len(node.Adjacents) != len(g.NodeMap)-1 {
+			return false
+		}
+
+		for _, adjacent := range node.Adjacents {
+
+			if adjacent.To.Name == node.Name {
+				return false
+			}
+
+		}
+
+	}
+
+	return true
+
 }

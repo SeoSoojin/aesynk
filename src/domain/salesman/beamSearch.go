@@ -2,6 +2,7 @@ package salesman
 
 import (
 	"fmt"
+	"math/rand"
 	"sort"
 
 	"github.com/seosoojin/aesynk/src/domain/node"
@@ -10,174 +11,113 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-type nodeSP struct {
-	node            *node.Node
-	averageDistance float64
+type BeamSearchSolver struct {
+	graph map[string]*node.Node
+	width int
 }
 
-type BeamSSolutionService struct {
-	graph    map[string]*nodeSP
-	b        int
-	solved   bool
-	solution path.Path
-}
-
-func NewBeamSSolutionService(b int, graph map[string]*node.Node) Solver {
-	return &BeamSSolutionService{
-		b:        b,
-		graph:    findAverageDistances(graph),
-		solved:   false,
-		solution: path.Path{},
+func NewBeamSearchSolver(graph map[string]*node.Node, width int) Solver {
+	return &BeamSearchSolver{
+		graph: graph,
+		width: width,
 	}
 }
 
-func (s *BeamSSolutionService) Solve() (path.Path, error) {
+func nextStates(state State, width int) []*State {
 
-	if s.solved {
-		return s.solution, nil
-	}
+	states := make([]*State, 0)
 
-	nBestStartNodes := s.findBestStartNodes(s.graph)
-	solution := path.Path{}
-	betterCost := 0.0
-	flag := false
+	for _, edge := range state.Current.Adjacents {
 
-	for _, startNode := range nBestStartNodes {
-		visited := make(map[string]struct{})
-		p, found := s.step(startNode, s.graph, visited, path.Path{}, 0.0)
-		if found && (p.Cost > betterCost || !flag) {
-			betterCost = p.Cost
-			solution = p
-			flag = true
+		_, ok := state.Visited[edge.To.Name]
+		if ok {
+			continue
 		}
+
+		copyVisited := maps.Clone(state.Visited)
+
+		copyVisited[edge.To.Name] = struct{}{}
+
+		nodes := slices.Clone(state.Path.Nodes)
+
+		nodes = append(nodes, edge.To)
+
+		costCopy := state.Path.Cost
+
+		newState := State{
+			Current: edge.To,
+			Visited: copyVisited,
+			Path:    path.Path{Nodes: nodes, Cost: costCopy + edge.Weight},
+		}
+
+		states = append(states, &newState)
 	}
 
-	if flag {
-		s.solved = true
-		s.solution = solution
-		return solution, nil
+	return bestStates(states, width)
+
+}
+
+func bestStates(states []*State, width int) []*State {
+
+	sort.SliceStable(states, func(i, j int) bool {
+		return states[i].Path.Cost < states[j].Path.Cost
+	})
+
+	if len(states) <= width {
+		return states
+	}
+
+	return states[:width]
+
+}
+
+func (b *BeamSearchSolver) Solve() (path.Path, error) {
+
+	names := maps.Keys(b.graph)
+
+	key := rand.Intn(len(names))
+
+	firstNode := b.graph[names[key]]
+
+	initialState := State{
+		Current: firstNode,
+		Visited: map[string]struct{}{firstNode.Name: {}},
+		Path:    path.Path{Nodes: []*node.Node{firstNode}},
+	}
+
+	beam := []*State{&initialState}
+
+	for len(beam) > 0 {
+
+		nextBeam := []*State{}
+
+		for _, state := range beam {
+
+			for _, nextState := range nextStates(*state, b.width) {
+
+				if validateSolution(b.graph, nextState.Visited) {
+					return nextState.Path, nil
+				}
+
+				nextBeam = append(nextBeam, nextState)
+
+			}
+
+		}
+
+		if len(nextBeam) > b.width {
+			nextBeam = bestStates(nextBeam, b.width)
+		}
+
+		beam = nextBeam
+
 	}
 
 	return path.Path{}, fmt.Errorf("no solution found")
 
 }
 
-func (s *BeamSSolutionService) step(curr *nodeSP, input map[string]*nodeSP, visited map[string]struct{}, steps path.Path, stepCost float64) (path.Path, bool) {
-
-	if curr == nil {
-		return steps, false
-	}
-
-	visitedCopy := maps.Clone(visited)
-
-	stepsCopy := slices.Clone(steps.Nodes)
-	stepsCopy = append(stepsCopy, curr.node)
-	cost := steps.Cost + stepCost
-
-	visitedCopy[curr.node.Name] = struct{}{}
-
-	if validateSolution(input, visitedCopy) {
-		steps.Nodes = stepsCopy
-		return steps, true
-	}
-
-	qnt := s.b
-
-	adjacentsSample := make([]*node.Edge, 0)
-
-	for i := 0; i < len(curr.node.Adjacents); i++ {
-
-		if len(adjacentsSample) == qnt {
-			break
-		}
-
-		if _, ok := visitedCopy[curr.node.Adjacents[i].To.Name]; ok {
-			continue
-		}
-
-		adjacentsSample = append(adjacentsSample, curr.node.Adjacents[i])
-
-	}
-
-	flag := false
-	betterCost := 0.0
-
-	for _, adjacent := range adjacentsSample {
-
-		p, found := s.step(input[adjacent.To.Name], input, visitedCopy, path.Path{
-			Nodes: stepsCopy,
-			Cost:  cost,
-		}, adjacent.Weight)
-
-		if found && (p.Cost < betterCost || !flag) {
-			betterCost = p.Cost
-			steps = p
-			flag = true
-		}
-
-	}
-
-	if flag {
-		return steps, true
-	}
-
-	return steps, false
-
-}
-
-func (s *BeamSSolutionService) findBestStartNodes(input map[string]*nodeSP) []*nodeSP {
-
-	bestNodes := make([]*nodeSP, 0)
-
-	for _, n := range input {
-		bestNodes = append(bestNodes, n)
-	}
-
-	sort.SliceStable(bestNodes, func(i, j int) bool {
-		return bestNodes[i].averageDistance < bestNodes[j].averageDistance
-	})
-
-	if len(bestNodes) < s.b {
-		return bestNodes
-	}
-
-	return bestNodes[:s.b]
-
-}
-
-func findAverageDistances(graph map[string]*node.Node) map[string]*nodeSP {
-
-	average := 0.0
-
-	graphWithDistance := make(map[string]*nodeSP)
-
-	for key, n := range graph {
-
-		average = calcAverageDistance(n)
-		graphWithDistance[key] = &nodeSP{
-			node:            n,
-			averageDistance: average,
-		}
-
-	}
-
-	return graphWithDistance
-
-}
-
-func calcAverageDistance(n *node.Node) float64 {
-
-	sum := 0.0
-
-	for _, edge := range n.Adjacents {
-		sum += edge.Weight
-	}
-
-	return sum / float64(len(n.Adjacents))
-
-}
-
-func validateSolution(input map[string]*nodeSP, visited map[string]struct{}) bool {
+func validateSolution(input map[string]*node.Node, visited map[string]struct{}) bool {
 
 	if len(input) != len(visited) {
 		return false
@@ -190,5 +130,28 @@ func validateSolution(input map[string]*nodeSP, visited map[string]struct{}) boo
 	}
 
 	return true
+
+}
+
+func PrintState(state State) {
+
+	fmt.Printf("Current: %s\n", state.Current.Name)
+
+	fmt.Printf("Visited: ")
+	for key := range state.Visited {
+		fmt.Printf("%s ", key)
+	}
+	fmt.Println()
+
+	fmt.Printf("Path: ")
+	for i := 0; i < len(state.Path.Nodes)-1; i++ {
+		fmt.Printf("%s -> ", state.Path.Nodes[i].Name)
+	}
+
+	fmt.Printf("%s\n", state.Path.Nodes[len(state.Path.Nodes)-1].Name)
+
+	fmt.Println("Cost: ", state.Path.Cost)
+
+	fmt.Println()
 
 }

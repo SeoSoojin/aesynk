@@ -10,12 +10,8 @@ import (
 
 func main() {
 
-	graph, err := graph.NewGraph(true).FromCSV("graph.csv")
-	if err != nil {
-		panic(err)
-	}
-
-	path, err := salesman.NewBeamSSolutionService(7, graph.Nodes()).Solve()
+	graph := graph.NewGraph(true, 2).GenerateCompleteGraph(150, true)
+	path, err := salesman.NewBeamSearchSolver(graph.Nodes(), 3).Solve()
 	if err != nil {
 		panic(err)
 	}
