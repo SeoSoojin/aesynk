@@ -1,0 +1,8 @@
+goos: linux
+goarch: amd64
+pkg: github.com/seosoojin/aesynk/src/domain/salesman
+cpu: 11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz
+BenchmarkBeamSearchSolver_SolveFor1000/width_1-16         	       1	7164206759 ns/op	7523486672 B/op	 2850226 allocs/op
+BenchmarkBeamSearchSolver_SolveFor1000/width_2-16         	       1	14235416182 ns/op	15046395184 B/op	 5696205 allocs/op
+BenchmarkBeamSearchSolver_SolveFor1000/width_3-16         	       1	21305048477 ns/op	22569586288 B/op	 8541536 allocs/op
+PASS
