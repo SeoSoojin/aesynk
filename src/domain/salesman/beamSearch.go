@@ -68,15 +68,11 @@ func (s *BeamSSolutionService) step(curr *nodeSP, input map[string]*nodeSP, visi
 		return steps, false
 	}
 
-	stepsCopy := slices.Clone(steps.Nodes)
-	stepsCopy = append(stepsCopy, curr.node)
-	steps.Cost += stepCost
-
 	visitedCopy := maps.Clone(visited)
 
-	if _, ok := visitedCopy[curr.node.Name]; ok {
-		return steps, false
-	}
+	stepsCopy := slices.Clone(steps.Nodes)
+	stepsCopy = append(stepsCopy, curr.node)
+	cost := steps.Cost + stepCost
 
 	visitedCopy[curr.node.Name] = struct{}{}
 
@@ -110,7 +106,7 @@ func (s *BeamSSolutionService) step(curr *nodeSP, input map[string]*nodeSP, visi
 
 		p, found := s.step(input[adjacent.To.Name], input, visitedCopy, path.Path{
 			Nodes: stepsCopy,
-			Cost:  steps.Cost,
+			Cost:  cost,
 		}, adjacent.Weight)
 
 		if found && (p.Cost < betterCost || !flag) {
