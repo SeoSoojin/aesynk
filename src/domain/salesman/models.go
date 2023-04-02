@@ -6,7 +6,8 @@ import (
 )
 
 type State struct {
-	Current *node.Node
-	Visited map[string]struct{}
-	Path    path.Path
+	InitialNode  *node.Node
+	Current      *node.Node
+	MissingNodes map[string]struct{}
+	Path         path.Path
 }

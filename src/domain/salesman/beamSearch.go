@@ -23,20 +23,20 @@ func NewBeamSearchSolver(graph map[string]*node.Node, width int) Solver {
 	}
 }
 
-func nextStates(state State, width int) []*State {
+func nextStates(state State, width int, firstNode *node.Node) []*State {
 
 	states := make([]*State, 0)
 
 	for _, edge := range state.Current.Adjacents {
 
-		_, ok := state.Visited[edge.To.Name]
-		if ok {
+		_, ok := state.MissingNodes[edge.To.Name]
+		if !ok || (edge.To.Name == firstNode.Name && len(state.MissingNodes) > 1) {
 			continue
 		}
 
-		copyVisited := maps.Clone(state.Visited)
+		copyMissing := maps.Clone(state.MissingNodes)
 
-		copyVisited[edge.To.Name] = struct{}{}
+		delete(copyMissing, edge.To.Name)
 
 		nodes := slices.Clone(state.Path.Nodes)
 
@@ -45,9 +45,9 @@ func nextStates(state State, width int) []*State {
 		costCopy := state.Path.Cost
 
 		newState := State{
-			Current: edge.To,
-			Visited: copyVisited,
-			Path:    path.Path{Nodes: nodes, Cost: costCopy + edge.Weight},
+			Current:      edge.To,
+			MissingNodes: copyMissing,
+			Path:         path.Path{Nodes: nodes, Cost: costCopy + edge.Weight},
 		}
 
 		states = append(states, &newState)
@@ -80,9 +80,9 @@ func (b *BeamSearchSolver) Solve() (path.Path, error) {
 	firstNode := b.graph[names[key]]
 
 	initialState := State{
-		Current: firstNode,
-		Visited: map[string]struct{}{firstNode.Name: {}},
-		Path:    path.Path{Nodes: []*node.Node{firstNode}},
+		Current:      firstNode,
+		MissingNodes: startMissingNodes(b.graph),
+		Path:         path.Path{Nodes: []*node.Node{firstNode}},
 	}
 
 	beam := []*State{&initialState}
@@ -93,9 +93,9 @@ func (b *BeamSearchSolver) Solve() (path.Path, error) {
 
 		for _, state := range beam {
 
-			for _, nextState := range nextStates(*state, b.width) {
+			for _, nextState := range nextStates(*state, b.width, firstNode) {
 
-				if validateSolution(b.graph, nextState.Visited) {
+				if validateSolution(b.graph, nextState.MissingNodes) {
 					return nextState.Path, nil
 				}
 
@@ -117,19 +117,21 @@ func (b *BeamSearchSolver) Solve() (path.Path, error) {
 
 }
 
-func validateSolution(input map[string]*node.Node, visited map[string]struct{}) bool {
+func startMissingNodes(input map[string]*node.Node) map[string]struct{} {
 
-	if len(input) != len(visited) {
-		return false
-	}
+	missingNodes := map[string]struct{}{}
 
 	for key := range input {
-		if _, ok := visited[key]; !ok {
-			return false
-		}
+		missingNodes[key] = struct{}{}
 	}
 
-	return true
+	return missingNodes
+
+}
+
+func validateSolution(input map[string]*node.Node, missing map[string]struct{}) bool {
+
+	return len(missing) == 0
 
 }
 
@@ -137,11 +139,10 @@ func PrintState(state State) {
 
 	fmt.Printf("Current: %s\n", state.Current.Name)
 
-	fmt.Printf("Visited: ")
-	for key := range state.Visited {
+	fmt.Printf("Missing: ")
+	for key := range state.MissingNodes {
 		fmt.Printf("%s ", key)
 	}
-	fmt.Println()
 
 	fmt.Printf("Path: ")
 	for i := 0; i < len(state.Path.Nodes)-1; i++ {
