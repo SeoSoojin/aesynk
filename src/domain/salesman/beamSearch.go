@@ -2,7 +2,6 @@ package salesman
 
 import (
 	"fmt"
-	"math/rand"
 	"sort"
 
 	"github.com/seosoojin/aesynk/src/domain/node"
@@ -73,12 +72,7 @@ func bestStates(states []*State, width int) []*State {
 
 func (b *BeamSearchSolver) Solve() (path.Path, error) {
 
-	names := maps.Keys(b.graph)
-
-	key := rand.Intn(len(names))
-
-	firstNode := b.graph[names[key]]
-
+	firstNode := generateRandomNode(b.graph)
 	initialState := State{
 		Current:      firstNode,
 		MissingNodes: startMissingNodes(b.graph),
@@ -114,24 +108,6 @@ func (b *BeamSearchSolver) Solve() (path.Path, error) {
 	}
 
 	return path.Path{}, fmt.Errorf("no solution found")
-
-}
-
-func startMissingNodes(input map[string]*node.Node) map[string]struct{} {
-
-	missingNodes := map[string]struct{}{}
-
-	for key := range input {
-		missingNodes[key] = struct{}{}
-	}
-
-	return missingNodes
-
-}
-
-func validateSolution(input map[string]*node.Node, missing map[string]struct{}) bool {
-
-	return len(missing) == 0
 
 }
 

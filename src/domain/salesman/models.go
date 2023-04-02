@@ -11,3 +11,10 @@ type State struct {
 	MissingNodes map[string]struct{}
 	Path         path.Path
 }
+
+type Chromosome []*node.Node
+
+type Individual struct {
+	Chromosome Chromosome
+	Fitness    float64
+}

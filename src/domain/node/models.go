@@ -19,7 +19,7 @@ type Node struct {
 	Name         string
 	Coordinates  []float64
 	Adjacents    []*Edge
-	adjacentsMap map[string]*Edge
+	AdjacentsMap map[string]*Edge
 }
 
 func NewNode(name string, coordinates []float64) *Node {
@@ -32,7 +32,7 @@ func NewNode(name string, coordinates []float64) *Node {
 		Name:         name,
 		Coordinates:  coordinates,
 		Adjacents:    make([]*Edge, 0),
-		adjacentsMap: make(map[string]*Edge),
+		AdjacentsMap: make(map[string]*Edge),
 	}
 
 }
@@ -49,7 +49,7 @@ func (n *Node) AddAdjacent(dest *Node) *Node {
 
 	sum := 0.0
 
-	_, ok := n.adjacentsMap[dest.Name]
+	_, ok := n.AdjacentsMap[dest.Name]
 	if ok {
 		return n
 	}
@@ -72,7 +72,7 @@ func (n *Node) AddAdjacent(dest *Node) *Node {
 
 	n.Adjacents = tempAdjacents
 
-	n.adjacentsMap[dest.Name] = edge
+	n.AdjacentsMap[dest.Name] = edge
 
 	return n
 
