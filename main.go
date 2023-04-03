@@ -2,19 +2,33 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
-	"github.com/seosoojin/aesynk/src/domain/graph"
 	"github.com/seosoojin/aesynk/src/domain/node"
 	"github.com/seosoojin/aesynk/src/domain/path"
+	"github.com/seosoojin/aesynk/src/domain/state"
 )
 
 func main() {
 
-	err := graph.NewGraph(true, 2).GenerateCompleteGraph(50000, true).ToCSV("graph50k.csv")
-	if err != nil {
-		panic(err)
+	// err := graph.NewGraph(true, 2).GenerateCompleteGraph(50000, true).ToCSV("graph50k.csv")
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	node1 := node.Node{
+		Name: "1",
 	}
+
+	auxState := state.State{
+		InitialNode:  &node1,
+		Current:      &node1,
+		MissingNodes: map[string]struct{}{"2": {}},
+		Path:         path.Path{Nodes: []*node.Node{&node1}, Cost: 1},
+	}
+
+	auxState.Write(os.Stdout, true)
 
 	// fmt.Println("Graph generated.")
 

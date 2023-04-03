@@ -6,6 +6,7 @@ import (
 
 	"github.com/seosoojin/aesynk/src/domain/node"
 	"github.com/seosoojin/aesynk/src/domain/path"
+	"github.com/seosoojin/aesynk/src/domain/state"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
@@ -22,28 +23,28 @@ func NewBeamSearchSolver(graph map[string]*node.Node, width int) Solver {
 	}
 }
 
-func nextStates(state State, width int, firstNode *node.Node) []*State {
+func nextStates(input state.State, width int, firstNode *node.Node) []*state.State {
 
-	states := make([]*State, 0)
+	states := make([]*state.State, 0)
 
-	for _, edge := range state.Current.Adjacents {
+	for _, edge := range input.Current.Adjacents {
 
-		_, ok := state.MissingNodes[edge.To.Name]
-		if !ok || (edge.To.Name == firstNode.Name && len(state.MissingNodes) > 1) {
+		_, ok := input.MissingNodes[edge.To.Name]
+		if !ok || (edge.To.Name == firstNode.Name && len(input.MissingNodes) > 1) {
 			continue
 		}
 
-		copyMissing := maps.Clone(state.MissingNodes)
+		copyMissing := maps.Clone(input.MissingNodes)
 
 		delete(copyMissing, edge.To.Name)
 
-		nodes := slices.Clone(state.Path.Nodes)
+		nodes := slices.Clone(input.Path.Nodes)
 
 		nodes = append(nodes, edge.To)
 
-		costCopy := state.Path.Cost
+		costCopy := input.Path.Cost
 
-		newState := State{
+		newState := state.State{
 			Current:      edge.To,
 			MissingNodes: copyMissing,
 			Path:         path.Path{Nodes: nodes, Cost: costCopy + edge.Weight},
@@ -56,7 +57,7 @@ func nextStates(state State, width int, firstNode *node.Node) []*State {
 
 }
 
-func bestStates(states []*State, width int) []*State {
+func bestStates(states []*state.State, width int) []*state.State {
 
 	sort.SliceStable(states, func(i, j int) bool {
 		return states[i].Path.Cost < states[j].Path.Cost
@@ -73,17 +74,17 @@ func bestStates(states []*State, width int) []*State {
 func (b *BeamSearchSolver) Solve() (path.Path, error) {
 
 	firstNode := generateRandomNode(b.graph)
-	initialState := State{
+	initialState := state.State{
 		Current:      firstNode,
 		MissingNodes: startMissingNodes(b.graph),
 		Path:         path.Path{Nodes: []*node.Node{firstNode}},
 	}
 
-	beam := []*State{&initialState}
+	beam := []*state.State{&initialState}
 
 	for len(beam) > 0 {
 
-		nextBeam := []*State{}
+		nextBeam := []*state.State{}
 
 		for _, state := range beam {
 
@@ -108,27 +109,5 @@ func (b *BeamSearchSolver) Solve() (path.Path, error) {
 	}
 
 	return path.Path{}, fmt.Errorf("no solution found")
-
-}
-
-func PrintState(state State) {
-
-	fmt.Printf("Current: %s\n", state.Current.Name)
-
-	fmt.Printf("Missing: ")
-	for key := range state.MissingNodes {
-		fmt.Printf("%s ", key)
-	}
-
-	fmt.Printf("Path: ")
-	for i := 0; i < len(state.Path.Nodes)-1; i++ {
-		fmt.Printf("%s -> ", state.Path.Nodes[i].Name)
-	}
-
-	fmt.Printf("%s\n", state.Path.Nodes[len(state.Path.Nodes)-1].Name)
-
-	fmt.Println("Cost: ", state.Path.Cost)
-
-	fmt.Println()
 
 }
