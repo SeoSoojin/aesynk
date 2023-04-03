@@ -6,36 +6,3 @@ BenchmarkBeamSearchSolver_SolveFor1000/width_1-16         	       1	7164206759 n
 BenchmarkBeamSearchSolver_SolveFor1000/width_2-16         	       1	14235416182 ns/op	15046395184 B/op	 5696205 allocs/op
 BenchmarkBeamSearchSolver_SolveFor1000/width_3-16         	       1	21305048477 ns/op	22569586288 B/op	 8541536 allocs/op
 PASS
-
-func main() {
-
-	Node1 := node.NewNode("Node1", []float64{1, 1})
-	Node2 := node.NewNode("Node2", []float64{2, 2})
-	Node3 := node.NewNode("Node3", []float64{3, 3})
-	Node4 := node.NewNode("Node4", []float64{4, 4})
-
-	Node1.AddAdjacent(Node2)
-	Node1.AddAdjacent(Node3)
-	Node1.AddAdjacent(Node4)
-
-	Node2.AddAdjacent(Node1)
-	Node2.AddAdjacent(Node3)
-	Node2.AddAdjacent(Node4)
-
-	Node3.AddAdjacent(Node1)
-	Node3.AddAdjacent(Node2)
-	Node3.AddAdjacent(Node4)
-
-	Node4.AddAdjacent(Node1)
-	Node4.AddAdjacent(Node2)
-	Node4.AddAdjacent(Node3)
-
-	chromossome1 := salesman.Chromosome{Node1.AdjacentsMap["Node2"], Node2.AdjacentsMap["Node3"], Node3.AdjacentsMap["Node4"], Node4.AdjacentsMap["Node1"]}
-	chromossome2 := salesman.Chromosome{Node1.AdjacentsMap["Node4"], Node3.AdjacentsMap["Node2"], Node2.AdjacentsMap["Node3"], Node4.AdjacentsMap["Node1"]}
-
-	individual1 := salesman.Individual{Chromosome: chromossome1, Fitness: chromossome1.Fitness()}
-	individual2 := salesman.Individual{Chromosome: chromossome2, Fitness: chromossome2.Fitness()}
-
-	child, child2 := individual1.Breed(individual2, 0.0)
-	child.Breed(child2, 0.0)
-}

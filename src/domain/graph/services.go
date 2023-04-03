@@ -49,19 +49,26 @@ func (g *Graph) FromCSV(path string) (graph, error) {
 
 	for _, line := range linesWithoutHeader {
 
-		coordinatesFields := line[1 : 1+g.Dimensions]
+		coordinatesString := line[1]
+
+		coordinatesString = strings.Trim(coordinatesString, " []")
+
+		cordinatesArray := strings.Split(coordinatesString, ",")
+
+		if len(cordinatesArray) != g.Dimensions {
+			return g, fmt.Errorf("invalid number of coordinates")
+		}
 
 		coordinates := make([]float64, g.Dimensions)
 
-		for index, value := range coordinatesFields {
+		for i, coordinate := range cordinatesArray {
 
-			value := strings.Trim(value, " ")
+			coordinate = strings.Trim(coordinate, " ")
 
-			floatCoord, err := strconv.ParseFloat(value, 64)
+			coordinates[i], err = strconv.ParseFloat(coordinate, 64)
 			if err != nil {
 				return g, err
 			}
-			coordinates[index] = floatCoord
 
 		}
 
@@ -184,6 +191,56 @@ func (g *Graph) GenerateCompleteGraph(size int, randomize bool) graph {
 	g.NodeMap = nodesMap
 
 	return g
+
+}
+
+func (g *Graph) ToCSV(path string) error {
+
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	writer := csv.NewWriter(f)
+
+	header := []string{"Name", "Coordinates", "Adjacents"}
+
+	lines := [][]string{header}
+
+	for _, node := range g.NodeMap {
+
+		line := []string{node.Name}
+		builder := strings.Builder{}
+
+		for i := 0; i < len(node.Coordinates)-1; i++ {
+
+			builder.WriteString(fmt.Sprintf("%f,", node.Coordinates[i]))
+
+		}
+
+		builder.WriteString(fmt.Sprintf("%f", node.Coordinates[len(node.Coordinates)-1]))
+
+		line = append(line, builder.String())
+
+		builder.Reset()
+
+		for i := 0; i < len(node.Adjacents)-1; i++ {
+
+			builder.WriteString(fmt.Sprintf("%s,", node.Adjacents[i].To.Name))
+
+		}
+
+		builder.WriteString(node.Adjacents[len(node.Adjacents)-1].To.Name)
+
+		line = append(line, builder.String())
+
+		lines = append(lines, line)
+
+	}
+
+	return writer.WriteAll(lines)
 
 }
 

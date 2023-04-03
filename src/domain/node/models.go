@@ -77,3 +77,13 @@ func (n *Node) AddAdjacent(dest *Node) *Node {
 	return n
 
 }
+
+func (n *Node) AddAdjacents(dests ...*Node) *Node {
+
+	for _, dest := range dests {
+		n.AddAdjacent(dest)
+	}
+
+	return n
+
+}

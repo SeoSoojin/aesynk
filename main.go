@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/seosoojin/aesynk/src/domain/graph"
 	"github.com/seosoojin/aesynk/src/domain/node"
@@ -12,11 +13,32 @@ import (
 
 func main() {
 
-	graph := graph.NewGraph(true, 2).GenerateCompleteGraph(15000, true)
-	path, err := salesman.NewGeneticSolver(graph.Nodes(), 100, 100, 0.1, 0.1).Solve()
+	graph, err := graph.NewGraph(true, 2).FromCSV("graph5000.csv")
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Println("Graph generated.")
+
+	startTime := time.Now()
+
+	path, err := salesman.NewGeneticSolver(graph.Nodes(), 100, 500, 0.1, 0.1).Solve()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Time: ", time.Since(startTime))
+
+	printSolution(path)
+
+	startTime = time.Now()
+
+	path, err = salesman.NewPGeneticSolver(graph.Nodes(), 100, 500, 0.1, 0.1, 100).Solve()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Time: ", time.Since(startTime))
 
 	printSolution(path)
 
@@ -24,6 +46,7 @@ func main() {
 
 func printSolution(path path.Path) {
 
+	fmt.Println("Solution: ")
 	if len(path.Nodes) == 0 {
 		return
 	}
