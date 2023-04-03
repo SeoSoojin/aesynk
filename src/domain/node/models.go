@@ -64,13 +64,7 @@ func (n *Node) AddAdjacent(dest *Node) *Node {
 		Weight: math.Sqrt(sum),
 	}
 
-	tempAdjacents := append(n.Adjacents, edge)
-
-	sort.SliceStable(tempAdjacents, func(i, j int) bool {
-		return tempAdjacents[i].Weight < tempAdjacents[j].Weight
-	})
-
-	n.Adjacents = tempAdjacents
+	n.Adjacents = append(n.Adjacents, edge)
 
 	n.AdjacentsMap[dest.Name] = edge
 
@@ -85,5 +79,13 @@ func (n *Node) AddAdjacents(dests ...*Node) *Node {
 	}
 
 	return n
+
+}
+
+func (n *Node) SortAdjascents() {
+
+	sort.SliceStable(n.Adjacents, func(i, j int) bool {
+		return n.Adjacents[i].Weight < n.Adjacents[j].Weight
+	})
 
 }

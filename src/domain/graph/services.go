@@ -96,6 +96,8 @@ func (g *Graph) FromCSV(path string) (graph, error) {
 
 		}
 
+		auxNode.SortAdjascents()
+
 	}
 
 	g.NodeMap = nodesMap
@@ -185,6 +187,8 @@ func (g *Graph) GenerateCompleteGraph(size int, randomize bool) graph {
 			node.AddAdjacent(otherNode)
 
 		}
+
+		node.SortAdjascents()
 
 	}
 

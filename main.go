@@ -3,44 +3,38 @@ package main
 import (
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/seosoojin/aesynk/src/domain/graph"
 	"github.com/seosoojin/aesynk/src/domain/node"
 	"github.com/seosoojin/aesynk/src/domain/path"
-	"github.com/seosoojin/aesynk/src/domain/salesman"
 )
 
 func main() {
 
-	graph, err := graph.NewGraph(true, 2).FromCSV("graph5000.csv")
+	err := graph.NewGraph(true, 2).GenerateCompleteGraph(50000, true).ToCSV("graph50k.csv")
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Graph generated.")
+	// fmt.Println("Graph generated.")
 
-	startTime := time.Now()
+	// startTime := time.Now()
 
-	path, err := salesman.NewGeneticSolver(graph.Nodes(), 100, 500, 0.1, 0.1).Solve()
-	if err != nil {
-		panic(err)
-	}
+	// _, err := salesman.NewGeneticSolver(graph.Nodes(), 100, 200, 0.1, 0.1).Solve()
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	fmt.Println("Time: ", time.Since(startTime))
+	// fmt.Println("Time: ", time.Since(startTime))
 
-	printSolution(path)
+	// startTime = time.Now()
 
-	startTime = time.Now()
+	// _, err = salesman.NewPGeneticSolver(graph.Nodes(), 100, 200, 0.1, 0.1, 100).Solve()
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	path, err = salesman.NewPGeneticSolver(graph.Nodes(), 100, 500, 0.1, 0.1, 100).Solve()
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Time: ", time.Since(startTime))
-
-	printSolution(path)
+	// fmt.Println("Time: ", time.Since(startTime))
 
 }
 
