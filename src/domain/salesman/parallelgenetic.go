@@ -3,6 +3,7 @@ package salesman
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 
 	"github.com/seosoojin/aesynk/src/domain/individual"
 	"github.com/seosoojin/aesynk/src/domain/node"
@@ -38,12 +39,11 @@ func NewPGeneticSolver(graph map[string]*node.Node, generations int, populationS
 
 	return &PGeneticSolver{
 		GeneticSolver: GeneticSolver{
-			graph:                  graph,
-			generations:            generations,
-			populationSize:         populationSize,
-			eliteGenerationSize:    eliteGenerationSize,
-			remainigGenerationSize: (populationSize / 2) - eliteGenerationSize,
-			mutationProb:           mutationProb,
+			graph:               graph,
+			generations:         generations,
+			populationSize:      populationSize,
+			eliteGenerationSize: eliteGenerationSize,
+			mutationProb:        mutationProb,
 		},
 		batch: batch,
 	}
@@ -91,11 +91,19 @@ func (g *PGeneticSolver) parallelSolve(population []individual.Individual) []ind
 
 func (g *PGeneticSolver) parallelReproduce(base []individual.Individual, mutationProb float64) []individual.Individual {
 
-	parents := g.selectParents(base)
+	sort.SliceStable(base, func(i, j int) bool {
+		return base[i].Fitness < base[j].Fitness
+	})
 
-	children := slices.Clone(parents)
+	survivingElites := int(float64(g.eliteGenerationSize) * 0.8)
 
-	for i := 0; i < g.remainigGenerationSize; i += g.batch {
+	children := slices.Clone(base[:survivingElites])
+
+	eliteBase := base[:g.eliteGenerationSize]
+
+	nonEliteBase := base[g.eliteGenerationSize:]
+
+	for len(children) < g.populationSize {
 
 		childCh := make(chan individual.Individual)
 
@@ -104,16 +112,34 @@ func (g *PGeneticSolver) parallelReproduce(base []individual.Individual, mutatio
 		for j := 0; j < g.batch/2; j++ {
 
 			go func() {
-				parentIndex := rand.Intn(len(parents))
-				parent := parents[parentIndex]
+				var parents []individual.Individual
 
-				partnerIndex := rand.Intn(len(parents))
+				if rand.Float64() < 0.6 {
 
-				for partnerIndex == parentIndex {
-					partnerIndex = rand.Intn(len(parents))
+					parents = eliteBase
+
+				} else {
+
+					parents = nonEliteBase
+
 				}
 
-				partner := parents[partnerIndex]
+				parent := tournamentSelect(parents)
+
+				if rand.Float64() < 0.6 {
+
+					parents = eliteBase
+
+				} else {
+
+					parents = nonEliteBase
+
+				}
+
+				partner := tournamentSelect(parents)
+				for partner.Fitness == parent.Fitness {
+					partner = tournamentSelect(parents)
+				}
 
 				child1, child2 := parent.Breed(partner, g.mutationProb)
 
@@ -137,6 +163,6 @@ func (g *PGeneticSolver) parallelReproduce(base []individual.Individual, mutatio
 
 	}
 
-	return append(children[:g.remainigGenerationSize], parents...)
+	return children
 
 }

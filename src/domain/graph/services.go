@@ -162,7 +162,7 @@ func (g *Graph) GenerateCompleteGraph(size int, randomize bool) graph {
 		for j := range coordinates {
 
 			if randomize {
-				coordinates[j] = rand.Float64()
+				coordinates[j] = float64(rand.Intn(100)) + (float64(rand.Intn(100)) / 100)
 				continue
 			}
 

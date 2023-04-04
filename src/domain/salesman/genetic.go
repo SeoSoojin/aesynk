@@ -14,12 +14,11 @@ import (
 )
 
 type GeneticSolver struct {
-	graph                  map[string]*node.Node
-	generations            int
-	populationSize         int
-	eliteGenerationSize    int
-	remainigGenerationSize int
-	mutationProb           float64
+	graph               map[string]*node.Node
+	generations         int
+	populationSize      int
+	eliteGenerationSize int
+	mutationProb        float64
 }
 
 func NewGeneticSolver(graph map[string]*node.Node, generations int, populationSize int, elitismPercent float64, mutationProb float64) Solver {
@@ -28,15 +27,14 @@ func NewGeneticSolver(graph map[string]*node.Node, generations int, populationSi
 		elitismPercent = 1
 	}
 
-	eliteGenerationSize := int(float64(populationSize/2) * elitismPercent)
+	eliteGenerationSize := int(float64(populationSize) * elitismPercent)
 
 	return &GeneticSolver{
-		graph:                  graph,
-		generations:            generations,
-		populationSize:         populationSize,
-		eliteGenerationSize:    eliteGenerationSize,
-		remainigGenerationSize: (populationSize / 2) - eliteGenerationSize,
-		mutationProb:           mutationProb,
+		graph:               graph,
+		generations:         generations,
+		populationSize:      populationSize,
+		eliteGenerationSize: eliteGenerationSize,
+		mutationProb:        mutationProb,
 	}
 
 }
@@ -75,7 +73,6 @@ func (g *GeneticSolver) solve(population []individual.Individual) []individual.I
 
 	for i := 0; i < g.generations; i++ {
 
-		fmt.Println(currPopulation[0].Fitness)
 		currPopulation = g.reproduce(currPopulation)
 
 	}
@@ -86,57 +83,75 @@ func (g *GeneticSolver) solve(population []individual.Individual) []individual.I
 
 func (g *GeneticSolver) reproduce(base []individual.Individual) []individual.Individual {
 
-	parents := g.selectParents(base)
+	sort.SliceStable(base, func(i, j int) bool {
+		return base[i].Fitness < base[j].Fitness
+	})
 
-	children := slices.Clone(parents)
+	survivingElites := int(float64(g.eliteGenerationSize) * 0.8)
 
-	for i := 0; i < g.remainigGenerationSize; i += 2 {
+	children := slices.Clone(base[:survivingElites])
 
-		k := 2 + rand.Intn(len(parents)-2)
+	eliteBase := base[:g.eliteGenerationSize]
 
-		minIndex := -1
+	nonEliteBase := base[g.eliteGenerationSize:]
 
-		for j := 0; j < k; j++ {
+	for len(children) < g.populationSize {
 
-			aux := rand.Intn(len(parents))
-			if minIndex == -1 || aux < minIndex {
-				minIndex = aux
-			}
+		var parents []individual.Individual
 
-		}
+		if rand.Float64() < 0.6 {
 
-		parentIndex := minIndex
+			parents = eliteBase
 
-		parent := parents[parentIndex]
+		} else {
 
-		k = 2 + rand.Intn(len(parents)-2)
-
-		minIndex = -1
-
-		for j := 0; j < k; j++ {
-
-			aux := rand.Intn(len(parents))
-			if minIndex == -1 || aux < minIndex {
-				minIndex = aux
-			}
+			parents = nonEliteBase
 
 		}
 
-		partnerIndex := minIndex
+		parent := tournamentSelect(parents)
 
-		for partnerIndex == parentIndex {
-			partnerIndex = rand.Intn(len(parents))
+		if rand.Float64() < 0.6 {
+
+			parents = eliteBase
+
+		} else {
+
+			parents = nonEliteBase
+
 		}
 
-		partner := parents[partnerIndex]
+		partner := tournamentSelect(parents)
+		for partner.Fitness == parent.Fitness {
+			partner = tournamentSelect(parents)
+		}
 
-		child1, child2 := parent.Breed(partner, g.mutationProb)
+		child1, _ := parent.Breed(partner, g.mutationProb)
 
-		children = append(children, child1, child2)
+		children = append(children, child1)
 
 	}
 
-	return children
+	return children[:g.populationSize]
+
+}
+
+func tournamentSelect(population []individual.Individual) individual.Individual {
+
+	k := 2 + rand.Intn(10)
+
+	minIndex := -1
+
+	for j := 0; j < k; j++ {
+
+		aux := rand.Intn(len(population))
+		if minIndex == -1 || aux < minIndex {
+			minIndex = aux
+		}
+
+	}
+
+	return population[minIndex]
 
 }
 
@@ -161,37 +176,11 @@ func randomPopulation(graph map[string]*node.Node, size int) []individual.Indivi
 	for i := 0; i < size; i++ {
 
 		chromosome := individual.NewChromosome(currNode, missing)
-		population[i] = individual.Individual{Chromosome: chromosome, Fitness: chromosome.Fitness()}
+		population[i] = individual.NewIndividual(chromosome)
 
 	}
 
 	return population
-
-}
-
-func (g GeneticSolver) selectParents(population []individual.Individual) []individual.Individual {
-
-	sort.SliceStable(population, func(i, j int) bool {
-		return population[i].Fitness < population[j].Fitness
-	})
-
-	elitePopulation := population[:g.eliteGenerationSize]
-
-	if g.remainigGenerationSize == 0 {
-		return elitePopulation
-	}
-
-	remainingPopulation := population[g.eliteGenerationSize:]
-
-	remainingParents := make([]individual.Individual, g.remainigGenerationSize)
-
-	for i := 0; i < g.remainigGenerationSize; i++ {
-
-		remainingParents[i] = individual.RoundSelect(remainingPopulation[rand.Intn(len(remainingPopulation))], remainingPopulation[rand.Intn(len(remainingPopulation))])
-
-	}
-
-	return append(elitePopulation, remainingParents...)
 
 }
 
