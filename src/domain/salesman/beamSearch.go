@@ -7,6 +7,7 @@ import (
 	"github.com/seosoojin/aesynk/src/domain/node"
 	"github.com/seosoojin/aesynk/src/domain/path"
 	"github.com/seosoojin/aesynk/src/domain/state"
+	"github.com/seosoojin/aesynk/src/domain/utils"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
@@ -73,10 +74,10 @@ func bestStates(states []*state.State, width int) []*state.State {
 
 func (b *BeamSearchSolver) Solve() (path.Path, error) {
 
-	firstNode := generateRandomNode(b.graph)
+	firstNode := utils.GenerateRandomNode(b.graph)
 	initialState := state.State{
 		Current:      firstNode,
-		MissingNodes: startMissingNodes(b.graph),
+		MissingNodes: utils.StartMissingNodes(b.graph),
 		Path:         path.Path{Nodes: []*node.Node{firstNode}},
 	}
 
@@ -109,5 +110,11 @@ func (b *BeamSearchSolver) Solve() (path.Path, error) {
 	}
 
 	return path.Path{}, fmt.Errorf("no solution found")
+
+}
+
+func validateSolution(input map[string]*node.Node, missing map[string]struct{}) bool {
+
+	return len(missing) == 0
 
 }

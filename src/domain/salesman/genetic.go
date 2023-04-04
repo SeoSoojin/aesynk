@@ -8,6 +8,7 @@ import (
 	"github.com/seosoojin/aesynk/src/domain/individual"
 	"github.com/seosoojin/aesynk/src/domain/node"
 	"github.com/seosoojin/aesynk/src/domain/path"
+	"github.com/seosoojin/aesynk/src/domain/utils"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
@@ -43,6 +44,9 @@ func NewGeneticSolver(graph map[string]*node.Node, generations int, populationSi
 func (g *GeneticSolver) Solve() (path.Path, error) {
 
 	initialPopulation := randomPopulation(g.graph, g.populationSize)
+	if len(initialPopulation) == 0 {
+		return path.Path{}, fmt.Errorf("error generating initial population")
+	}
 
 	finalpop := g.solve(initialPopulation)
 
@@ -71,6 +75,7 @@ func (g *GeneticSolver) solve(population []individual.Individual) []individual.I
 
 	for i := 0; i < g.generations; i++ {
 
+		fmt.Println(currPopulation[0].Fitness)
 		currPopulation = g.reproduce(currPopulation)
 
 	}
@@ -87,10 +92,37 @@ func (g *GeneticSolver) reproduce(base []individual.Individual) []individual.Ind
 
 	for i := 0; i < g.remainigGenerationSize; i += 2 {
 
-		parentIndex := rand.Intn(len(parents))
+		k := 2 + rand.Intn(len(parents)-2)
+
+		minIndex := -1
+
+		for j := 0; j < k; j++ {
+
+			aux := rand.Intn(len(parents))
+			if minIndex == -1 || aux < minIndex {
+				minIndex = aux
+			}
+
+		}
+
+		parentIndex := minIndex
+
 		parent := parents[parentIndex]
 
-		partnerIndex := rand.Intn(len(parents))
+		k = 2 + rand.Intn(len(parents)-2)
+
+		minIndex = -1
+
+		for j := 0; j < k; j++ {
+
+			aux := rand.Intn(len(parents))
+			if minIndex == -1 || aux < minIndex {
+				minIndex = aux
+			}
+
+		}
+
+		partnerIndex := minIndex
 
 		for partnerIndex == parentIndex {
 			partnerIndex = rand.Intn(len(parents))
@@ -110,7 +142,11 @@ func (g *GeneticSolver) reproduce(base []individual.Individual) []individual.Ind
 
 func randomPopulation(graph map[string]*node.Node, size int) []individual.Individual {
 
-	firstNode := generateRandomNode(graph)
+	firstNode := utils.GenerateRandomNode(graph)
+
+	if firstNode == nil {
+		return []individual.Individual{}
+	}
 
 	graphCopy := maps.Clone(graph)
 
@@ -156,5 +192,21 @@ func (g GeneticSolver) selectParents(population []individual.Individual) []indiv
 	}
 
 	return append(elitePopulation, remainingParents...)
+
+}
+
+func validateSolutionGenetic(input map[string]*node.Node, output path.Path) bool {
+
+	if len(output.Nodes) != len(input)+1 {
+		return false
+	}
+
+	nodesMap := map[string]struct{}{}
+
+	for _, node := range output.Nodes {
+		nodesMap[node.Name] = struct{}{}
+	}
+
+	return len(nodesMap) == len(input) && output.Nodes[0].Name == output.Nodes[len(output.Nodes)-1].Name
 
 }
